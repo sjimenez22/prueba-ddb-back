@@ -70,7 +70,7 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 - Rol administrador
 - User = admin@gmail.com y password = prueba123*
 - Rol usuario
-- User = user@gmail.com y password = prueba456*
+- User = user@gmail.com y password = prueba123*
 
 ## Libraries
 

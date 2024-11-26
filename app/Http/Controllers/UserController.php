@@ -75,6 +75,16 @@ class UserController extends Controller
     }
 
     /**
+     * Get user by email
+     */
+    public function getUserByEmail(string $email)
+    {
+        $user = User::with('role')->where('c_email', $email)->first();
+        if (!$user) return response()->json(['data' => null, 'message' => 'El usuario no existe.'], 404);
+        return response()->json(['data' => $user]);
+    }
+
+    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, string $id)
@@ -121,7 +131,14 @@ class UserController extends Controller
     public function destroy(string $id)
     {
         $user = User::find($id);
+        $user->load('projects', 'tasksCreator', 'tasksResponsible');
         if (!$user) return response()->json(['data' => null, 'message' => 'El usuario no existe.'], 404);
+
+        if (count($user->projects) > 0) return response()->json(['data' => null, 'message' => 'El usuario no se puede eliminar ya que tiene proyectos asignados.'], 403);
+
+        if (count($user->tasksCreator) > 0) return response()->json(['data' => null, 'message' => 'El usuario no se puede eliminar ya que tiene tareas creadas.'], 403);
+
+        if (count($user->tasksResponsible) > 0) return response()->json(['data' => null, 'message' => 'El usuario no se puede eliminar ya que tiene tareas a cargo.'], 403);
 
         $user->delete();
         return response()->json(['data' => $user, 'message' => 'Usuario eliminado.']);

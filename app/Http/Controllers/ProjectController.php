@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,7 +13,7 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        $projects = Project::with('user')->get();
+        $projects = Project::with('user')->orderby('pk_project', 'desc')->get();
         return response()->json(['data' => $projects]);
     }
 
@@ -87,7 +86,10 @@ class ProjectController extends Controller
     public function destroy(string $id)
     {
         $project = Project::find($id);
+        $project->load('tasks');
         if (!$project) return response()->json(['data' => null, 'message' => 'El proyecto no existe.'], 404);
+
+        if ($project->tasks && count($project->tasks) > 0) return response()->json(['data' => null, 'message' => 'El proyecto no se puede eliminar ya que tiene tareas asignadas.'], 403);
 
         $project->delete();
         return response()->json(['data' => $project, 'message' => 'Proyecto eliminado.']);

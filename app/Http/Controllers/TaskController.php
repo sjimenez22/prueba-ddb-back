@@ -16,7 +16,7 @@ class TaskController extends Controller
      */
     public function index()
     {
-        $tasks = Task::with('project', 'statusTask', 'userResponsible', 'userCreator')->get();
+        $tasks = Task::with('project', 'statusTask', 'userResponsible', 'userCreator')->orderBy('d_completion', 'asc')->get();
         return response()->json(['data' => $tasks]);
     }
 
@@ -85,9 +85,23 @@ class TaskController extends Controller
         $user = User::find($idUser);
         if (!$user) return response()->json(['data' => null, 'message' => 'El usuario no existe.'], 404);
 
-        $tasks = Task::where('fk_user_responsible', $idUser)->get();
+        $tasks = Task::where('fk_user_responsible', $idUser)->orderBy('d_completion', 'asc')->get();
 
         $tasks->load('project', 'statusTask', 'userResponsible', 'userCreator');
+        return response()->json(['data' => $tasks]);
+    }
+
+    /**
+     * Get all tasks by project
+     */
+    public function getTasksByProject(string $idProject)
+    {
+        $project = Project::find($idProject);
+        if (!$project) return response()->json(['data' => null, 'message' => 'El proyecto no existe.'], 404);
+
+        $tasks = Task::where('fk_project', $idProject)->orderBy('d_completion', 'asc')->get();
+
+        $tasks->load('statusTask', 'userResponsible', 'userCreator');
         return response()->json(['data' => $tasks]);
     }
 

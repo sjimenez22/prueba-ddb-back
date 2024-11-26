@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Firebase\JWT\JWT;
+use Illuminate\Support\Facades\Request;
 
 class JwtServiceProvider
 {
