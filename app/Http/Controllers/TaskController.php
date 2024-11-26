@@ -6,18 +6,30 @@ use App\Models\Project;
 use App\Models\StatusTask;
 use App\Models\Task;
 use App\Models\User;
+use App\Providers\JwtServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
 {
+    protected $jwtService;
+
+    public function __construct(JwtServiceProvider $jwtService)
+    {
+        $this->jwtService = $jwtService;
+    }
+
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $tasks = Task::with('project', 'statusTask', 'userResponsible', 'userCreator')->orderBy('d_completion', 'asc')->get();
-        return response()->json(['data' => $tasks]);
+        if ($this->jwtService->haveAccess($request)) {
+            $tasks = Task::with('project', 'statusTask', 'userResponsible', 'userCreator')->orderBy('d_completion', 'asc')->get();
+            return response()->json(['data' => $tasks]);
+        } else {
+            return response()->json(['message' => 'No tienes acceso.'], 401);
+        }
     }
 
     /**
@@ -25,44 +37,48 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'c_name' => 'required|string|min:3|max:255',
-            'c_description' => 'required|string|min:3',
-            'd_completion' => 'required|date',
-            'fk_project' => 'required|numeric|exists:projects,pk_project',
-            'fk_status' => 'required|numeric|exists:status_tasks,pk_status',
-            'fk_user_responsible' => 'required|numeric|exists:users,pk_user',
-            'fk_user_creator' => 'required|numeric|exists:users,pk_user'
-        ], [
-            'c_name.required' => 'El nombre es requerido.',
-            'c_name.string' => 'El nombre debe ser un texto.',
-            'c_name.min' => 'El nombre debe tener mínimo 3 carácteres.',
-            'c_name.max' => 'El nombre debe tener máximo 255 carácteres.',
-            'c_description.required' => 'La descripción es requerida.',
-            'c_description.string' => 'La descripción debe ser un texto.',
-            'c_description.min' => 'La descripción debe tener mínimo 3 carácteres.',
-            'd_completion.required' => 'La fecha es requerida.',
-            'd_completion.date' => 'La fecha debe tener un formato tipo fecha valida.',
-            'fk_project.required' => 'El proyecto es requerido.',
-            'fk_project.numeric' => 'El proyecto debe ser un número.',
-            'fk_project.exists' => 'El proyecto no existe.',
-            'fk_status.required' => 'El estado de la tarea es requerido.',
-            'fk_status.numeric' => 'El estado de la tarea debe ser un número.',
-            'fk_status.exists' => 'El estado de la tarea no existe.',
-            'fk_user_responsible.required' => 'El usuario responsable es requerido.',
-            'fk_user_responsible.numeric' => 'El usuario responsable debe ser un número.',
-            'fk_user_responsible.exists' => 'El usuario responsable no existe.',
-            'fk_user_creator.required' => 'El usuario creador es requerido.',
-            'fk_user_creator.numeric' => 'El usuario creador debe ser un número.',
-            'fk_user_creator.exists' => 'El usuario creador no existe.',
-        ]);
+        if ($this->jwtService->haveAccess($request)) {
+            $validator = Validator::make($request->all(), [
+                'c_name' => 'required|string|min:3|max:255',
+                'c_description' => 'required|string|min:3',
+                'd_completion' => 'required|date',
+                'fk_project' => 'required|numeric|exists:projects,pk_project',
+                'fk_status' => 'required|numeric|exists:status_tasks,pk_status',
+                'fk_user_responsible' => 'required|numeric|exists:users,pk_user',
+                'fk_user_creator' => 'required|numeric|exists:users,pk_user'
+            ], [
+                'c_name.required' => 'El nombre es requerido.',
+                'c_name.string' => 'El nombre debe ser un texto.',
+                'c_name.min' => 'El nombre debe tener mínimo 3 carácteres.',
+                'c_name.max' => 'El nombre debe tener máximo 255 carácteres.',
+                'c_description.required' => 'La descripción es requerida.',
+                'c_description.string' => 'La descripción debe ser un texto.',
+                'c_description.min' => 'La descripción debe tener mínimo 3 carácteres.',
+                'd_completion.required' => 'La fecha es requerida.',
+                'd_completion.date' => 'La fecha debe tener un formato tipo fecha valida.',
+                'fk_project.required' => 'El proyecto es requerido.',
+                'fk_project.numeric' => 'El proyecto debe ser un número.',
+                'fk_project.exists' => 'El proyecto no existe.',
+                'fk_status.required' => 'El estado de la tarea es requerido.',
+                'fk_status.numeric' => 'El estado de la tarea debe ser un número.',
+                'fk_status.exists' => 'El estado de la tarea no existe.',
+                'fk_user_responsible.required' => 'El usuario responsable es requerido.',
+                'fk_user_responsible.numeric' => 'El usuario responsable debe ser un número.',
+                'fk_user_responsible.exists' => 'El usuario responsable no existe.',
+                'fk_user_creator.required' => 'El usuario creador es requerido.',
+                'fk_user_creator.numeric' => 'El usuario creador debe ser un número.',
+                'fk_user_creator.exists' => 'El usuario creador no existe.',
+            ]);
 
-        if ($validator->fails()) return response()->json(['message' => $validator->errors()], 400);
+            if ($validator->fails()) return response()->json(['message' => $validator->errors()], 400);
 
-        $task = Task::create($request->all());
-        $task->load('project', 'statusTask', 'userResponsible', 'userCreator');
+            $task = Task::create($request->all());
+            $task->load('project', 'statusTask', 'userResponsible', 'userCreator');
 
-        return response()->json(['data' => $task, 'message' => 'Tarea creada.'], 201);
+            return response()->json(['data' => $task, 'message' => 'Tarea creada.'], 201);
+        } else {
+            return response()->json(['message' => 'No tienes acceso.'], 401);
+        }
     }
 
     /**
@@ -167,12 +183,16 @@ class TaskController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
-        $task = Task::find($id);
-        if (!$task) return response()->json(['data' => null, 'message' => 'La tarea no existe.'], 404);
+        if ($this->jwtService->haveAccess($request)) {
+            $task = Task::find($id);
+            if (!$task) return response()->json(['data' => null, 'message' => 'La tarea no existe.'], 404);
 
-        $task->delete();
-        return response()->json(['data' => $task, 'message' => 'Tarea eliminada.']);
+            $task->delete();
+            return response()->json(['data' => $task, 'message' => 'Tarea eliminada.']);
+        } else {
+            return response()->json(['message' => 'No tienes acceso.'], 401);
+        }
     }
 }
